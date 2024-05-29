@@ -1,0 +1,20 @@
+* Overview
+Given a set of genome fasta files, generate primer candidates (for qPCR) that is specific to each genome.
+
+* Approach
+1. Focus on coding sequences - first annotate each genome to extract protein coding sequences.
+2. Concatenate every genome fasta file to make an "excluded" genome. For every genome G, primers specific to G should not bind to G', the excluded genome.
+3. Index each genome and its cognate excluded genome using bowtie2.
+4. Propose primer candidates with parameters suitable for qPCR using primer3. Format the forward and reverse primers as "reads"
+5. Align these primer "read" files to both the genome and the excluded genome.
+6. Filter out primer pairs with non specific binding.
+
+* Installation and setup notes
+- Setup conda with python 3.11 and snakemake 8.11.3
+- Installed the snakemake executor plugin for slurm to work
+- I am using two custom conda environments.
+  - =bakta= has weird dependency issues with python 3.11
+    - =bakta= also has weird issues currently with its reliance on amrfinderplus. I have had to comment out the parts of the bakta code which handle this.
+  - =bowtie2= was easier to install in a separate environment for some reason.
+- I am using =bakta= because I have not been able to install =prokka= with my current setup.
+- Finally, this pipeline is setup to use =slurm= for parallelizing tasks. 
