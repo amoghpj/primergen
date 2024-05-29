@@ -1,14 +1,15 @@
 import os
 import glob
 from pathlib import Path
+import pandas as pd
 
 run_path = Path(config["run_path"])
-#### inputs
 
+#### inputs
 genome_dir = Path("genome/")
-annotation_dir = Path("cds/")
 
 ### outputs
+annotation_dir = Path("cds/")
 concat_dir = Path("concatenated/")
 proposed_dir = Path("proposed/")
 
@@ -25,11 +26,23 @@ EXCLUDEDGENOME = [ run_path / concat_dir / Path(f"{f}_excluded.fasta") for f in 
 ALLGENOMES = list(glob.glob(str(genome_dir) + "/*.fasta"))
 ALLGENOMES.extend(list(glob.glob(str(concat_dir) + "/*.fasta")))
 
-print(TARGETFILES)
+# print(TARGETFILES)
 
 rule all:
     input:
+        run_path / "top5_per_genome.csv"
+
+rule aggregate:
+    input:
         expand(run_path / output_dir / ("{genome}_primers.csv"), genome=TARGETFILES)
+    output:
+        run_path / "top5_per_genome.csv"
+    run:
+        dflist = []
+        for f in input:
+            dflist.append(pd.read_csv(f).head(5))
+        df = pd.concat(dflist).reset_index(drop=True)
+        df.to_csv(output, index=False)
 
 rule find_cds:
     """
@@ -52,7 +65,7 @@ rule find_cds:
         outdir = run_path / annotation_dir
     shell:
         """mkdir -p {params.outdir}
-bakta --db {params.dbname} {input.genome} -o {params.outdir} --skip-plot"""
+bakta --db {params.dbname} {input.genome} -o {params.outdir} --skip-crispr --skip-plot --skip-pseudo --skip-trna --skip-ncrna --skip-rrna"""
 
 rule propose_candidates:
     """
@@ -145,11 +158,14 @@ rule align_self:
     params:
         indexref= lambda w : str(run_path / self_index_dir) + "/" +  w.genome,
         outputdir = run_path / self_aligned_dir
+    conda:
+        "/n/groups/springer/amogh/conda/bowtie2/"
     log:
        run_path / "logs/{genome}_align.log"
-    run:
-       shell("mkdir -p {params.outputdir}/")
-       shell(f"bowtie2 -x {params.indexref} -f -1 {input.R1} -2 {input.R2} -S {output} &> {log}")
+    shell:
+       """mkdir -p {params.outputdir}/
+bowtie2 -x {params.indexref} -f -1 {input.R1} -2 {input.R2} -S {output} &> {log}
+"""
 
 rule align_nonself:
     resources:
@@ -162,15 +178,17 @@ rule align_nonself:
         index= run_path / nonself_index_dir / "{genome}_excluded.1.bt2"
     output:
         samfile= run_path / nonself_aligned_dir/ "{genome}.sam",
+    conda:
+        "/n/groups/springer/amogh/conda/bowtie2/"
     params:
         indexref= lambda w : str(run_path / nonself_index_dir) + "/" +  w.genome + "_excluded",
         outputdir = run_path / nonself_aligned_dir
     log:
        run_path / "logs/{genome}_nonselfalign.log"
-    run:
-       shell("mkdir -p {params.outputdir}/")
-       shell(f"bowtie2 -x {params.indexref} -f -1 {input.R1} -2 {input.R2} -S {output} &> {log}")
-
+    shell:
+       """mkdir -p {params.outputdir}/
+bowtie2 -x {params.indexref} -f -1 {input.R1} -2 {input.R2} -S {output} &> {log}
+"""
 
 rule filter_candidates:
     resources:
@@ -187,6 +205,6 @@ rule filter_candidates:
         output = run_path / output_dir
     log:
        run_path / "logs/{genome}_filter.log"
-    run:
-        shell("mkdir -p {params.output}/")
-        shell(f"python src/filter_primers.py {input.proposed} {input.aligntocheck} {output} 1> {log}")
+    shell:
+        """mkdir -p {params.output}/
+python src/filter_primers.py {input.proposed} {input.aligntocheck} {output} 1> {log}"""

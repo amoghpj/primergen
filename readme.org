@@ -10,7 +10,9 @@ Given a set of genome fasta files, generate primer candidates (for qPCR) that is
 6. Filter out primer pairs with non specific binding.
 
 * Installation and setup notes
-- Setup conda with python 3.11 and snakemake 8.11.3
+- Setup conda with python 3.11 and snakemake 8.11.3.  My initial
+  choice of using python3.11 is affecting a lot of downstream
+  decisions, because most conda packages still require python<3.11.
 - Installed the snakemake executor plugin for slurm to work
 - I am using two custom conda environments.
   - =bakta= has weird dependency issues with python 3.11
@@ -18,7 +20,11 @@ Given a set of genome fasta files, generate primer candidates (for qPCR) that is
   - =bowtie2= was easier to install in a separate environment for some reason.
 - I am using =bakta= because I have not been able to install =prokka= with my current setup.
 - Finally, this pipeline is setup to use =slurm= for parallelizing tasks. 
-- Applied this patch to get a local env woring https://github.com/snakemake/snakemake/compare/main...ShogoAkiyama:snakemake:conda-url-env-bug
+- Applied this patch to get a local env woring
+  https://github.com/snakemake/snakemake/compare/main...ShogoAkiyama:snakemake:conda-url-env-bug
+- =bakta= performance is affected by a lot of network IO
+  (https://github.com/oschwengers/bakta/issues/282). Typical runs I've
+  observed are ~30 minutes.
 * Usage
 1. Create a directory, say RUNNAME.
 2. Modify =config.yaml= to point =run_path= to RUNNAME.

@@ -4,6 +4,9 @@ import os
 import primer3 as p3
 import pandas as pd
 
+NUM_PRIMERS_PER_CDS = 5
+NUM_PRIMERS_TO_GENERATE = 300
+
 def get_primers(record):
     """
     Return top PCR primers.
@@ -36,8 +39,6 @@ def get_primers(record):
                          p3_global_parameters)
     ok = True
     i = 1
-    # print(primers.keys())
-    # sys.exit()
     while ok:
         try:
             # Forward
@@ -56,6 +57,7 @@ def get_primers(record):
                                "forward_gc":primers[f"PRIMER_LEFT_{i}_GC_PERCENT"],
                                "reverse_gc":primers[f"PRIMER_RIGHT_{i}_GC_PERCENT"],
                                "reverse_end":startr + endr,
+                               "amplicon_sequence":record.seq[startf:endr]
                                "amplicon_size":abs(startr + endr - (startf)),
                                "product_tm":primers[f"PRIMER_PAIR_{i}_PRODUCT_TM"],
                                "forward_primer":primers[f"PRIMER_LEFT_{i}_SEQUENCE"],
@@ -63,6 +65,8 @@ def get_primers(record):
         except:
             ok = False
         i += 1
+        if i > NUM_PRIMERS_PER_CDS:
+            ok = False
 
     return(seqcollect)
 
@@ -442,20 +446,20 @@ def is_valid(s):
 
 def main():
     args = sys.argv
-    if len(args) != 2:
+    if len(args) != 3:
         sys.exit("Insufficient arguments. Please specify path to genome")
     cdsfile = args[1]
     outdir = args[2]
     collect = []
-    counter = 0
+    primer_counter = 0
     for record in SeqIO.parse(cdsfile,"fasta"):
         if is_valid(record.description):
             print(record.description)
             isvalid = False
             seq= get_primers(record)
             collect.extend(seq)
-            counter +=1
-        if counter > 100:
+            primer_counter +=1
+        if primer_counter > NUM_PRIMERS_TO_GENERATE:
             break
     df = pd.DataFrame(collect)
     genome = cdsfile.split("/")[-1].split(".")[0]

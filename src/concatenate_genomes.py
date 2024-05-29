@@ -10,6 +10,7 @@ def clean_fname(f):
     
 def concatenate_genomes(flist):
     collect = []
+    print("Number of genomes to be concatenated = ", len(flist))
     for f in flist:
         for record in SeqIO.parse(f,"fasta"):
             record.id = clean_fname(f) + "-" + record.id.replace(" ","_")
@@ -18,8 +19,11 @@ def concatenate_genomes(flist):
 
 def main():
     argv = sys.argv
+
     if len(argv) == 1:
         print("Missing arguments: Genome name, and rest of genomes")
+        sys.exit()
+
     genome = argv[1]
     output = argv[2]
     rest = argv[3:]
@@ -27,9 +31,6 @@ def main():
     print(f"Genome: {genome}")
     print(f"Rest: {rest}")
     concat = concatenate_genomes(rest)
-    if not os.path.exists("concatenated/"):
-        os.makedirs("concatenated/")
-    
     SeqIO.write(concat, output, "fasta")
 
 if __name__ == '__main__':
