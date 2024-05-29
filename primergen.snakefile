@@ -36,6 +36,10 @@ rule find_cds:
     If CDS file for a genome is absent, use $annotation_tool to
     predict coding sequences and annotate them.
     """
+    resources:
+        runtime="2h",
+        mem_mb="16000",
+        partition="short",
     input:
         genome= run_path / genome_dir/ ("{genome}.fasta")
     output:
@@ -43,11 +47,11 @@ rule find_cds:
     conda:
         "/n/groups/springer/amogh/conda/bakta/"
     params:
-        dbname="./BAKTA_DB",
+        dbname="./db",
         outdir = run_path / annotation_dir
     shell:
         """mkdir -p {params.outdir}
-bakta --db {params.dbname} {input.genome} {output.cds}"""
+bakta --db {params.dbname} {input.genome} -o {params.outdir} --skip-plot"""
 
 rule propose_candidates:
     """
@@ -63,11 +67,14 @@ rule propose_candidates:
         proposed=run_path / proposed_dir /"{genome}.csv",
         R1 = run_path / proposed_dir /"{genome}_R1.fasta",
         R2 = run_path / proposed_dir /"{genome}_R2.fasta"
+    params:
+        os.path.join(run_path , proposed_dir)
     log:
-        run_path / "logs/{genome}_proposed.log"
+        os.path.join(run_path, "logs", "{genome}_proposed.log")
+        #lambda w : os.path.join(run_path ,"logs", w.genome + "_proposed.log")
     run:
-       shell("mkdir -p {{run_path}}/proposed/")
-       shell(f"python src/propose_primers.py {input.target} > {log}")
+       shell("mkdir -p {params}/")
+       shell(f"python src/propose_primers.py {input.target} >> {log}")
 
 rule concatenate_genomes:
     """For every genome in GENOMELIST, exclude it, and make a
@@ -82,21 +89,23 @@ rule concatenate_genomes:
     output:
         excluded= run_path / concat_dir / "{genome}_excluded.fasta"
     params:
-        genome="{genome}"
+        genome= lambda w : w.genome
     log:
-       run_path / "logs/{genome}_concatenate.log"
+        os.path.join(run_path, "logs", "{genome}_concatenate.log")
     run:
         excluded = []
         for f in list(TARGETFILES):
             if f != params.genome:
                 excluded.append(f"{str(run_path)}/genome/{f}.fasta")
-        shell(f"python src/concatenate_genomes.py {input.genome} {' '.join(excluded)} > {log}")
+        shell(f"python src/concatenate_genomes.py {input.genome} {output.excluded} {' '.join(excluded)} > {log}")
     
 rule index_genomes:
     resources:
         runtime="30m",
         mem_mb="10000",
         partition="short",
+    conda:
+        "/n/groups/springer/amogh/conda/bowtie2/"
     input:
         genome= run_path / genome_dir / "{genome}.fasta",
         excludedgenome= run_path / concat_dir / "{genome}_excluded.fasta"
@@ -104,16 +113,17 @@ rule index_genomes:
         genomeidx= run_path / self_index_dir / "{genome}.1.bt2",
         exclgenomeidx= run_path / nonself_index_dir / "{genome}_excluded.1.bt2",
     params:
-        genome="{genome}",
-        genomeidx=run_path / self_index_dir / "{genome}",
-        exclgenomeidx=run_path / nonself_index_dir / "{genome}_excluded",
+        genome= lambda w: w.genome,
+        genomeidx= lambda w : str(run_path / self_index_dir) + "/" + w.genome,
+        exclgenomeidx= lambda w : str(run_path / nonself_index_dir) + "/" + w.genome + "_excluded"
     log:
-       run_path / ("logs/{genome}_index.log")
-    run:
-        shell("mkdir -p {params.genomeidx}/")
-        shell("mkdir -p {params.exclgenomeidx}")
-        shell(f"bowtie2-build {input.genome} {params.genomeidx} 1> {params.genome}.log")
-        shell(f"bowtie2-build {input.excludedgenome} {params.exclgenomeidx} 1> {params.genome}.log")
+        os.path.join(run_path, "logs", "{genome}_index.log")
+    shell:
+        """mkdir -p {params.genomeidx}/
+mkdir -p {params.exclgenomeidx}
+bowtie2-build {input.genome} {params.genomeidx} 1> {log}
+bowtie2-build {input.excludedgenome} {params.exclgenomeidx} 1> {log}
+"""
 
 rule align_self:
     resources:
@@ -127,7 +137,7 @@ rule align_self:
     output:
         samfile= run_path / self_aligned_dir/ "{genome}.sam",
     params:
-        indexref= run_path / self_index_dir / "{genome}",
+        indexref= lambda w : str(run_path / self_index_dir) + "/" +  w.genome,
         outputdir = run_path / self_aligned_dir
     log:
        run_path / "logs/{genome}_align.log"
@@ -147,7 +157,7 @@ rule align_nonself:
     output:
         samfile= run_path / nonself_aligned_dir/ "{genome}.sam",
     params:
-        indexref= run_path / nonself_index_dir / "{genome}_excluded",
+        indexref= lambda w : str(run_path / nonself_index_dir) + "/" +  w.genome + "_excluded",
         outputdir = run_path / nonself_aligned_dir
     log:
        run_path / "logs/{genome}_nonselfalign.log"

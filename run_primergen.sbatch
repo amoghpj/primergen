@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -n 1
-#SBATCH -t 0-1:00
+#SBATCH -t 0-4:00
 #SBATCH -p short
 #SBATCH --mem=1G
 #SBATCH --mail-type=ALL
@@ -12,5 +12,6 @@ snakemake --snakefile primergen.snakefile -p\
  --cores 4\
  --use-conda\
  --configfile config.yaml\
- -j 100 --executor slurm --default-resource slurm_account=springer_ms182 slurm_partition=short\
+ -j 100\
+ --executor slurm --default-resource slurm_account=springer_ms182 slurm_partition=short\
  --keep-incomplete --latency-wait 60
