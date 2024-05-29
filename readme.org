@@ -18,7 +18,7 @@ Given a set of genome fasta files, generate primer candidates (for qPCR) that is
   - =bowtie2= was easier to install in a separate environment for some reason.
 - I am using =bakta= because I have not been able to install =prokka= with my current setup.
 - Finally, this pipeline is setup to use =slurm= for parallelizing tasks. 
-
+- Applied this patch to get a local env woring https://github.com/snakemake/snakemake/compare/main...ShogoAkiyama:snakemake:conda-url-env-bug
 * Usage
 1. Create a directory, say RUNNAME.
 2. Modify =config.yaml= to point =run_path= to RUNNAME.

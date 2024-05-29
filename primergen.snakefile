@@ -37,8 +37,9 @@ rule find_cds:
     predict coding sequences and annotate them.
     """
     resources:
-        runtime="2h",
+        runtime="3h",
         mem_mb="16000",
+        cpus_per_task=4,
         partition="short",
     input:
         genome= run_path / genome_dir/ ("{genome}.fasta")
@@ -63,18 +64,21 @@ rule propose_candidates:
         partition="short",
     input:
         target= run_path / annotation_dir / ("{genome}.ffn")
+    conda:
+        "/n/groups/springer/amogh/conda/primer3/"
     output:
         proposed=run_path / proposed_dir /"{genome}.csv",
         R1 = run_path / proposed_dir /"{genome}_R1.fasta",
         R2 = run_path / proposed_dir /"{genome}_R2.fasta"
     params:
-        os.path.join(run_path , proposed_dir)
+        outdir = os.path.join(run_path , proposed_dir)
     log:
         os.path.join(run_path, "logs", "{genome}_proposed.log")
         #lambda w : os.path.join(run_path ,"logs", w.genome + "_proposed.log")
-    run:
-       shell("mkdir -p {params}/")
-       shell(f"python src/propose_primers.py {input.target} >> {log}")
+    shell:
+       """mkdir -p {params}/
+python src/propose_primers.py {input.target} {params.outdir} >> {log}
+"""
 
 rule concatenate_genomes:
     """For every genome in GENOMELIST, exclude it, and make a
@@ -115,14 +119,16 @@ rule index_genomes:
     params:
         genome= lambda w: w.genome,
         genomeidx= lambda w : str(run_path / self_index_dir) + "/" + w.genome,
-        exclgenomeidx= lambda w : str(run_path / nonself_index_dir) + "/" + w.genome + "_excluded"
+        exclgenomeidx= lambda w : str(run_path / nonself_index_dir) + "/" + w.genome + "_excluded",
+        selfidxdir = run_path / self_index_dir,
+        nonselfidxdir = run_path / nonself_index_dir,
     log:
         os.path.join(run_path, "logs", "{genome}_index.log")
     shell:
-        """mkdir -p {params.genomeidx}/
-mkdir -p {params.exclgenomeidx}
+        """mkdir -p {params.selfidxdir}/
+mkdir -p {params.nonselfidxdir}/
 bowtie2-build {input.genome} {params.genomeidx} 1> {log}
-bowtie2-build {input.excludedgenome} {params.exclgenomeidx} 1> {log}
+bowtie2-build {input.excludedgenome} {params.exclgenomeidx} 1>> {log}
 """
 
 rule align_self:
