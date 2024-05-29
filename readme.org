@@ -18,3 +18,20 @@ Given a set of genome fasta files, generate primer candidates (for qPCR) that is
   - =bowtie2= was easier to install in a separate environment for some reason.
 - I am using =bakta= because I have not been able to install =prokka= with my current setup.
 - Finally, this pipeline is setup to use =slurm= for parallelizing tasks. 
+
+* Usage
+1. Create a directory, say RUNNAME.
+2. Modify =config.yaml= to point =run_path= to RUNNAME.
+3. In RUNNAME/genome/ copy the individual genome FASTA files that are the targets for primer generation.
+4. If using =slurm= modify the supplied =sbatch= file to reflect the partition parameters, and run using =sbatch run_primergen.sbath=
+5. If running from the commandline, use something like
+   #+BEGIN_SRC bash
+snakemake --snakefile primergen.snakefile -p\
+ --rerun-incomplete\
+ --cores 4\
+ --use-conda\
+ --configfile config.yaml\
+ -j 100\
+ --keep-incomplete --latency-wait 60
+   #+END_SRC
+
