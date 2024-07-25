@@ -13,13 +13,13 @@ annotation_dir = Path("cds/")
 concat_dir = Path("concatenated/")
 proposed_dir = Path("proposed/")
 
-self_aligned_dir = Path("aligned/")
-nonself_aligned_dir = Path("nonselfaligned/")
-validate_nonself_primers_dir = Path("validate_nonself/")
+self_aligned_dir = Path("aligned_long/")
+nonself_aligned_dir = Path("nonselfaligned_long/")
+validate_nonself_primers_dir = Path("validate_nonself_long/")
 self_index_dir = Path("genomeidx/")
 nonself_index_dir = Path("concatenatedidx/")
 target_dir = Path("target/")
-output_dir = Path("design")
+output_dir = Path("design_long")
 
 TARGETFILES = [f.split(".")[-2].split("/")[-1] for f in glob.glob(str(run_path / genome_dir) + "/*.fasta")]
 EXCLUDEDGENOME = [ run_path / concat_dir / Path(f"{f}_excluded.fasta") for f in TARGETFILES]
@@ -30,19 +30,30 @@ ALLGENOMES.extend(list(glob.glob(str(concat_dir) + "/*.fasta")))
 
 rule all:
     input:
-        run_path / "top5_per_genome.csv"
+        run_path / "top10_per_genome_long.csv"
 
 rule aggregate:
+    resources:
+        runtime="10m",
+        mem_mb="500",
+        partition="short",
     input:
         expand(run_path / output_dir / ("{genome}_primers.csv"), genome=TARGETFILES)
     output:
-        run_path / "top5_per_genome.csv"
+        run_path / "top10_per_genome_long.csv"
     run:
         dflist = []
+        noprimers = []
         for f in input:
-            dflist.append(pd.read_csv(f).head(5))
+            try: 
+                df = pd.read_csv(f)
+                dflist.append(df.groupby("gene").first().reset_index().head(10))
+            except:
+                noprimers.append(f)
         df = pd.concat(dflist).reset_index(drop=True)
-        df.to_csv(output, index=False)
+        df.to_csv(run_path / "top10_per_genome_long.csv", index=False)
+        with open("no_primers_found","w") as outfile:
+            outfile.write("\n".join(noprimers))
 
 rule find_cds:
     """
@@ -72,7 +83,7 @@ rule propose_candidates:
     Use primer3 to propose candidates for each genome
     """
     resources:
-        runtime="10m",
+        runtime="20m",
         mem_mb="4000",
         partition="short",
     input:
@@ -164,7 +175,7 @@ rule align_self:
        run_path / "logs/{genome}_align.log"
     shell:
        """mkdir -p {params.outputdir}/
-bowtie2 -x {params.indexref} -f -1 {input.R1} -2 {input.R2} -S {output} &> {log}
+bowtie2 -x {params.indexref} -f -1 {input.R1} -2 {input.R2} -I 90 -X 2000 -S {output} &> {log}
 """
 
 rule align_nonself:
@@ -184,10 +195,10 @@ rule align_nonself:
         indexref= lambda w : str(run_path / nonself_index_dir) + "/" +  w.genome + "_excluded",
         outputdir = run_path / nonself_aligned_dir
     log:
-       run_path / "logs/{genome}_nonselfalign.log"
+       run_path / "logs/{genome}_nonselfalign_long.log"
     shell:
        """mkdir -p {params.outputdir}/
-bowtie2 -x {params.indexref} -f -1 {input.R1} -2 {input.R2} -S {output} &> {log}
+bowtie2 -x {params.indexref} -f -1 {input.R1} -2 {input.R2}  -I 0 -X 5000 -S {output} &> {log}
 """
 
 rule filter_candidates:

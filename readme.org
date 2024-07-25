@@ -8,6 +8,7 @@ Given a set of genome fasta files, generate primer candidates (for qPCR) that is
 4. Propose primer candidates with parameters suitable for qPCR using primer3. Format the forward and reverse primers as "reads"
 5. Align these primer "read" files to both the genome and the excluded genome.
 6. Filter out primer pairs with non specific binding.
+   I am using bowtie2 with a default alignment range of [0,5000]. This is meant to filter out short confordant alignments.
 
 * Installation and setup notes
 - Setup conda with python 3.11 and snakemake 8.11.3.  My initial
@@ -25,6 +26,7 @@ Given a set of genome fasta files, generate primer candidates (for qPCR) that is
 - =bakta= performance is affected by a lot of network IO
   (https://github.com/oschwengers/bakta/issues/282). Typical runs I've
   observed are ~30 minutes.
+
 * Usage
 1. Create a directory, say RUNNAME.
 2. Modify =config.yaml= to point =run_path= to RUNNAME.

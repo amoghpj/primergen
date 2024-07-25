@@ -3,21 +3,25 @@ from Bio import SeqIO, Seq
 import os
 import primer3 as p3
 import pandas as pd
+import time
 
 NUM_PRIMERS_PER_CDS = 5
-NUM_PRIMERS_TO_GENERATE = 300
+NUM_PRIMERS_TO_GENERATE = 500
 
 def get_primers(record):
     """
     Return top PCR primers.
     """
     p3_global_parameters = {
+        ## Primer length
         'PRIMER_OPT_SIZE': 20,
         'PRIMER_MIN_SIZE': 18,
-        'PRIMER_MAX_SIZE': 25,
-        'PRIMER_OPT_TM': 62.0,
-        'PRIMER_MIN_TM': 59.0,
-        'PRIMER_MAX_TM': 64.0,
+        'PRIMER_MAX_SIZE': 22,
+        ## Primer Temp
+        'PRIMER_OPT_TM': 60.0,
+        'PRIMER_MIN_TM': 58.0,
+        'PRIMER_MAX_TM': 61.0,
+        ## Primer GC
         'PRIMER_MIN_GC': 40.0,
         'PRIMER_MAX_GC': 60.0,
         'PRIMER_MAX_POLY_X': 100,
@@ -28,23 +32,36 @@ def get_primers(record):
         'PRIMER_MAX_SELF_END': 8,
         'PRIMER_PAIR_MAX_COMPL_ANY': 12,
         'PRIMER_PAIR_MAX_COMPL_END': 8,
+        'PRIMER_PICK_INTERNAL_OLIGO':1,
+        'PRIMER_INTERNAL_OPT_TM':68,
+        'PRIMER_INTERNAL_MIN_TM':66,
+        'PRIMER_INTERNAL_MAX_TM':69,
     }
     seqcollect = []
     rec = []
 
-    primers =  p3.design_primers({
-        'SEQUENCE_ID': f"{record.id}",
-        'SEQUENCE_TEMPLATE': record.seq,
-        'PRIMER_PRODUCT_SIZE_RANGE': [[90,120]]}, 
-                         p3_global_parameters)
     ok = True
     i = 1
-    while ok:
+    try:
+        primers =  p3.design_primers({
+            'SEQUENCE_ID': f"{record.id}",
+            'SEQUENCE_TEMPLATE': record.seq,
+            'PRIMER_PRODUCT_SIZE_RANGE': [[90,110]]}, 
+                                     p3_global_parameters)
+    except:
+        print(f"{record.description} too short")
+        ok = False
+        return seqcollect
+    for i in range(1, NUM_PRIMERS_PER_CDS + 1):
         try:
             # Forward
             startf, endf = primers[f"PRIMER_LEFT_{i}"]
+        except:
+            ok = False
+        if ok:
             # Reverse
             startr, endr = primers[f"PRIMER_RIGHT_{i}"]
+            startprobe, endprobe = primers[f"PRIMER_INTERNAL_{i}"]
             seqcollect.append({"gene":record.id,
                                "primer_id":i,
                                "forward_start":startf,
@@ -57,17 +74,18 @@ def get_primers(record):
                                "forward_gc":primers[f"PRIMER_LEFT_{i}_GC_PERCENT"],
                                "reverse_gc":primers[f"PRIMER_RIGHT_{i}_GC_PERCENT"],
                                "reverse_end":startr + endr,
-                               "amplicon_sequence":record.seq[startf:endr]
+                               "internal_start":startprobe,
+                               "internal_end":startprobe+endprobe,
+                               "internal_sequence":primers[f"PRIMER_INTERNAL_{i}_SEQUENCE"],
+                               "amplicon_sequence":str(record.seq)[startf:startr+endr],
+                               "internal_tm":primers[f"PRIMER_INTERNAL_{i}_TM"],
                                "amplicon_size":abs(startr + endr - (startf)),
                                "product_tm":primers[f"PRIMER_PAIR_{i}_PRODUCT_TM"],
                                "forward_primer":primers[f"PRIMER_LEFT_{i}_SEQUENCE"],
                                "reverse_primer":primers[f"PRIMER_RIGHT_{i}_SEQUENCE"]})
-        except:
-            ok = False
-        i += 1
-        if i > NUM_PRIMERS_PER_CDS:
-            ok = False
 
+        else:
+            break
     return(seqcollect)
 
 def is_valid(s):
@@ -226,6 +244,9 @@ def is_valid(s):
         print(f"removing {s}")
         isvalid = False
     if "phenylalanine--tRNA ligase, alpha subunit" in s:
+        print(f"removing {s}")
+        isvalid = False
+    if ("phage" in s) or ("Phage" in s):
         print(f"removing {s}")
         isvalid = False
     if "phenylalanine--tRNA ligase, beta subunit" in s:
@@ -452,14 +473,27 @@ def main():
     outdir = args[2]
     collect = []
     primer_counter = 0
+    cumtime  = 0
     for record in SeqIO.parse(cdsfile,"fasta"):
+        
         if is_valid(record.description):
-            print(record.description)
+            # print(record.description)
+            start = time.time()
             isvalid = False
-            seq= get_primers(record)
-            collect.extend(seq)
-            primer_counter +=1
+            seq = get_primers(record)
+            _time = time.time() - start
+            if len(seq) > 0:
+                collect.extend(seq)
+                primer_counter +=1
+        else:
+            _time = 0
+            
         if primer_counter > NUM_PRIMERS_TO_GENERATE:
+            break
+        cumtime += _time
+        if _time > 0:
+            print(f".....{round(cumtime,2)}s :: Found {len(collect)} primers")
+        if cumtime > 15.*60.:
             break
     df = pd.DataFrame(collect)
     genome = cdsfile.split("/")[-1].split(".")[0]
@@ -468,6 +502,7 @@ def main():
         os.makedirs(outdir)
     print(df.shape)
     df = df.sort_values(by="amplicon_size")
+    df = df[df.internal_tm >= ((df.forward_tm + df.reverse_tm)/2. + 6.)]
     df.to_csv(f"{outdir}/{genome}.csv",index=False)
     with open(f"{outdir}/{genome}_R1.fasta","w") as outfile:
         for i, row in df.iterrows():
