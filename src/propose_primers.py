@@ -467,10 +467,11 @@ def is_valid(s):
 
 def main():
     args = sys.argv
-    if len(args) != 3:
+    if len(args) != 4:
         sys.exit("Insufficient arguments. Please specify path to genome")
     cdsfile = args[1]
     outdir = args[2]
+    genome = args[3]
     collect = []
     primer_counter = 0
     cumtime  = 0
@@ -496,7 +497,7 @@ def main():
         if cumtime > 15.*60.:
             break
     df = pd.DataFrame(collect)
-    genome = cdsfile.split("/")[-1].split(".")[0]
+    #genome = cdsfile.split("/")[-1].split(".")[0]
     df = df.assign(genome = genome)
     if not os.path.exists(outdir):
         os.makedirs(outdir)

@@ -78,10 +78,15 @@ rule find_cds_prokaryote:
         "/n/groups/springer/amogh/conda/bakta/"
     params:
         dbname="./db",
-        outdir = run_path / annotation_dir
+        outdir = run_path / annotation_dir,
+        rundir = lambda wc : run_path / Path("prokaryotic_genomes") / wc.genome ,
+        outffn = "{genome}.ffn",
     shell:
         """mkdir -p {params.outdir}
-bakta --db {params.dbname} {input.genome} -o {params.outdir} --skip-crispr --skip-plot --skip-pseudo --skip-trna --skip-ncrna --skip-rrna"""
+mkdir -p {params.rundir}
+bakta --db {params.dbname} {input.genome} -o {params.rundir} --skip-crispr --skip-plot --skip-pseudo --skip-trna --skip-ncrna --skip-rrna
+cp {params.rundir}/{params.outffn} {output.cds}
+"""
 
 
 rule find_cds_eukaryote:
@@ -101,20 +106,15 @@ rule find_cds_eukaryote:
     params:
         outdir = run_path / annotation_dir,
         rundir = lambda wc : run_path / Path("eukaryotic_genomes") / Path(wc.genome),
-        outgtf = "{genome}.gtf",
-        inputgenome = "{genome}.fasta"
-        
+        inputgenome = lambda wc : (wc.genome + ".fasta")
     shell:
-        """mkdir -p {params.outdir}
+        """mkdir -p {params.outdir}/
 mkdir -p {params.rundir}/
 cp {input.genome} {params.rundir}
-# descend into folder
 cd {params.rundir}
-perl /n/groups/springer/amogh/src/genemarks/gmes_linux_64/gmes_petap.pl\
- --sequence {params.inputgenome}\
- --ES
+perl /n/groups/springer/amogh/src/genemarks/gmes_linux_64/gmes_petap.pl --sequence {params.inputgenome} --ES
 cd ../../../
-src/convert-gff-to-fasta.py {input.genome} {params.rundir}/{params.outgtf} {output.cds}
+python src/convert-gff-to-fna.py '{input.genome}' '{params.rundir}/genemark.gtf' '{output.cds}'
 """
 
 rule find_cds_virus:
@@ -140,8 +140,8 @@ rule find_cds_virus:
     shell:
         """mkdir -p {params.outdir}
 mkdir -p {params.rundir}
-prodigal -i {input.genome} -f gff -o {params.outgff}
-src/convert-gff-to-fasta.py {input.genome} {params.rundir}/{params.outgff} {output.cds}
+prodigal -i {input.genome} -f gff -o {params.rundir}/{params.outgff} -p meta
+python src/convert-gff-to-fna.py {input.genome} {params.rundir}/{params.outgff} {output.cds}
 """
 
 rule propose_candidates:
@@ -161,13 +161,14 @@ rule propose_candidates:
         R1 = run_path / proposed_dir /"{genome}_R1.fasta",
         R2 = run_path / proposed_dir /"{genome}_R2.fasta"
     params:
-        outdir = os.path.join(run_path , proposed_dir)
+        outdir = os.path.join(run_path , proposed_dir),
+        prefix = "{genome}"
     log:
         os.path.join(run_path, "logs", "{genome}_proposed.log")
         #lambda w : os.path.join(run_path ,"logs", w.genome + "_proposed.log")
     shell:
        """mkdir -p {params}/
-python src/propose_primers.py {input.target} {params.outdir} >> {log}
+python src/propose_primers.py {input.target} {params.outdir} {params.prefix} >> {log}
 """
 
 rule concatenate_genomes:

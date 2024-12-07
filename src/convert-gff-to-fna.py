@@ -21,9 +21,9 @@ def convert_to_fasta(genome, gff, output):
                        type=feature["type"])
         seqid = ""
         if "=" in feature.annotation:
-            seqid = feature.annotation.split(";")[0].split("=")[1]
+            seqid = feature.annotation.split(";")[0].split("=")[1].replace('"','')
         else:
-            seqid = feature.annotation.split(";")[0].split(" ")[1]
+            seqid = feature.annotation.split(";")[0].split(" ")[1].replace('"','')
         sr = SeqRecord(seq=f.extract(Genome).seq, features=[f], 
                        id=seqid, 
                        description=Genome.description)
