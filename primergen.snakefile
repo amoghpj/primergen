@@ -7,6 +7,11 @@ run_path = Path(config["run_path"])
 
 #### inputs
 genome_dir = Path("genome/")
+### OPTIONAL
+if config.get("strain_type", None) is not None:
+    straintypedf = pd.read_csv(Path(config["strain_type"]))
+    STRAINDICT = {row.strain: row["type"] for i,row in straintypedf.iterrows()}
+    print(STRAINDICT)
 
 ### outputs
 annotation_dir = Path("cds/")
@@ -55,7 +60,7 @@ rule aggregate:
         with open("no_primers_found","w") as outfile:
             outfile.write("\n".join(noprimers))
 
-rule find_cds:
+rule find_cds_prokaryote:
     """
     If CDS file for a genome is absent, use $annotation_tool to
     predict coding sequences and annotate them.
@@ -68,7 +73,7 @@ rule find_cds:
     input:
         genome= run_path / genome_dir/ ("{genome}.fasta")
     output:
-        cds= run_path / annotation_dir / ("{genome}.ffn")
+        cds= run_path / annotation_dir / ("{genome}_prokaryote.ffn")
     conda:
         "/n/groups/springer/amogh/conda/bakta/"
     params:
@@ -77,6 +82,67 @@ rule find_cds:
     shell:
         """mkdir -p {params.outdir}
 bakta --db {params.dbname} {input.genome} -o {params.outdir} --skip-crispr --skip-plot --skip-pseudo --skip-trna --skip-ncrna --skip-rrna"""
+
+
+rule find_cds_eukaryote:
+    """
+    If CDS file for a genome is absent, use $annotation_tool to
+    predict coding sequences and annotate them.
+    """
+    resources:
+        runtime="4h",
+        mem_mb="16000",
+        cpus_per_task=4,
+        partition="short",
+    input:
+        genome= run_path / genome_dir/ ("{genome}.fasta")
+    output:
+        cds= run_path / annotation_dir / ("{genome}_eukaryote.ffn")
+    params:
+        outdir = run_path / annotation_dir,
+        rundir = lambda wc : run_path / Path("eukaryotic_genomes") / Path(wc.genome),
+        outgtf = "{genome}.gtf",
+        inputgenome = "{genome}.fasta"
+        
+    shell:
+        """mkdir -p {params.outdir}
+mkdir -p {params.rundir}/
+cp {input.genome} {params.rundir}
+# descend into folder
+cd {params.rundir}
+perl /n/groups/springer/amogh/src/genemarks/gmes_linux_64/gmes_petap.pl\
+ --sequence {params.inputgenome}\
+ --ES
+cd ../../../
+src/convert-gff-to-fasta.py {input.genome} {params.rundir}/{params.outgtf} {output.cds}
+"""
+
+rule find_cds_virus:
+    """
+    If CDS file for a genome is absent, use $annotation_tool to
+    predict coding sequences and annotate them.
+    """
+    resources:
+        runtime="15m",
+        mem_mb="1G",
+        cpus_per_task=1,
+        partition="short",
+    conda:
+        "/n/groups/springer/amogh/conda/seq/"
+    input:
+        genome= run_path / genome_dir/ ("{genome}.fasta")
+    output:
+        cds= run_path / annotation_dir / ("{genome}_virus.ffn")
+    params:
+        outdir = run_path / annotation_dir,
+        rundir = lambda wc : run_path / Path("virus_genomes") / Path(wc.genome),
+        outgff = "{genome}.gff"
+    shell:
+        """mkdir -p {params.outdir}
+mkdir -p {params.rundir}
+prodigal -i {input.genome} -f gff -o {params.outgff}
+src/convert-gff-to-fasta.py {input.genome} {params.rundir}/{params.outgff} {output.cds}
+"""
 
 rule propose_candidates:
     """
@@ -87,7 +153,7 @@ rule propose_candidates:
         mem_mb="4000",
         partition="short",
     input:
-        target= run_path / annotation_dir / ("{genome}.ffn")
+        target = lambda wc : run_path / annotation_dir / (wc.genome + "_" + STRAINDICT[wc.genome] + ".ffn")
     conda:
         "/n/groups/springer/amogh/conda/primer3/"
     output:
