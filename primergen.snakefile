@@ -167,7 +167,7 @@ rule propose_candidates:
         os.path.join(run_path, "logs", "{genome}_proposed.log")
         #lambda w : os.path.join(run_path ,"logs", w.genome + "_proposed.log")
     shell:
-       """mkdir -p {params}/
+       """mkdir -p {params.outdir}/
 python src/propose_primers.py {input.target} {params.outdir} {params.prefix} >> {log}
 """
 
