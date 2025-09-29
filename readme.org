@@ -10,6 +10,8 @@ Given a set of genome fasta files, generate primer candidates (for qPCR) that is
 6. Filter out primer pairs with non specific binding.
    I am using bowtie2 with a default alignment range of [0,5000]. This is meant to filter out short confordant alignments.
 
+[[./img/primergen_illustration.png]]
+
 * Installation and setup notes
 - Setup conda with python 3.11 and snakemake 8.11.3.  My initial
   choice of using python3.11 is affecting a lot of downstream
