@@ -45,18 +45,18 @@ rule aggregate:
     input:
         expand(run_path / output_dir / ("{genome}_primers.csv"), genome=TARGETFILES)
     output:
-        run_path / "top10_per_genome_long.csv"
+        run_path / "top10_per_genome.csv"
     run:
         dflist = []
         noprimers = []
         for f in input:
             try: 
                 df = pd.read_csv(f)
-                dflist.append(df.groupby("gene").first().reset_index().head(10))
+                dflist.append(df.head(10))#df.sort_valuesgroupby("gene").first().reset_index().head(10))
             except:
                 noprimers.append(f)
         df = pd.concat(dflist).reset_index(drop=True)
-        df.to_csv(run_path / "top10_per_genome_long.csv", index=False)
+        df.to_csv(run_path / "top10_per_genome.csv", index=False)
         with open("no_primers_found","w") as outfile:
             outfile.write("\n".join(noprimers))
 
@@ -77,7 +77,7 @@ rule find_cds_prokaryote:
     conda:
         "/n/groups/springer/amogh/conda/bakta/"
     params:
-        dbname="./db",
+        dbname="/n/groups/springer/amogh/analysis/2024-05-20-xa52-qpcr-primer-generation/db",
         outdir = run_path / annotation_dir,
         rundir = lambda wc : run_path / Path("prokaryotic_genomes") / wc.genome ,
         outffn = "{genome}.ffn",
@@ -112,7 +112,7 @@ rule find_cds_eukaryote:
 mkdir -p {params.rundir}/
 cp {input.genome} {params.rundir}
 cd {params.rundir}
-perl /n/groups/springer/amogh/src/genemarks/gmes_linux_64/gmes_petap.pl --sequence {params.inputgenome} --ES
+perl /n/groups/springer/amogh/src/genemarks/gmes_linux_64_4/gmes_petap.pl --sequence {params.inputgenome} --ES
 cd ../../../
 python src/convert-gff-to-fna.py '{input.genome}' '{params.rundir}/genemark.gtf' '{output.cds}'
 """
@@ -149,7 +149,7 @@ rule propose_candidates:
     Use primer3 to propose candidates for each genome
     """
     resources:
-        runtime="20m",
+        runtime="40m",
         mem_mb="4000",
         partition="short",
     input:
@@ -196,7 +196,7 @@ rule concatenate_genomes:
     
 rule index_genomes:
     resources:
-        runtime="30m",
+        runtime="60m",
         mem_mb="10000",
         partition="short",
     conda:
