@@ -5,7 +5,7 @@ import primer3 as p3
 import pandas as pd
 import time
 
-NUM_PRIMERS_PER_CDS = 5
+NUM_PRIMERS_PER_CDS = 600
 NUM_PRIMERS_TO_GENERATE = 500
 
 def get_primers(record):
@@ -13,29 +13,173 @@ def get_primers(record):
     Return top PCR primers.
     """
     p3_global_parameters = {
-        ## Primer length
-        'PRIMER_OPT_SIZE': 20,
-        'PRIMER_MIN_SIZE': 18,
-        'PRIMER_MAX_SIZE': 22,
-        ## Primer Temp
-        'PRIMER_OPT_TM': 60.0,
-        'PRIMER_MIN_TM': 58.0,
-        'PRIMER_MAX_TM': 61.0,
-        ## Primer GC
-        'PRIMER_MIN_GC': 40.0,
-        'PRIMER_MAX_GC': 60.0,
-        'PRIMER_MAX_POLY_X': 100,
-        'PRIMER_SALT_MONOVALENT': 50.0,
-        'PRIMER_DNA_CONC': 50.0,
-        'PRIMER_MAX_NS_ACCEPTED': 0,
-        'PRIMER_MAX_SELF_ANY': 12,
-        'PRIMER_MAX_SELF_END': 8,
-        'PRIMER_PAIR_MAX_COMPL_ANY': 12,
-        'PRIMER_PAIR_MAX_COMPL_END': 8,
-        'PRIMER_PICK_INTERNAL_OLIGO':1,
-        'PRIMER_INTERNAL_OPT_TM':68,
-        'PRIMER_INTERNAL_MIN_TM':66,
-        'PRIMER_INTERNAL_MAX_TM':69,
+        "PRIMER_FIRST_BASE_INDEX":1,
+        "PRIMER_THERMODYNAMIC_OLIGO_ALIGNMENT":1,
+        "PRIMER_THERMODYNAMIC_TEMPLATE_ALIGNMENT":0,
+        "PRIMER_PICK_LEFT_PRIMER":1,
+        "PRIMER_PICK_INTERNAL_OLIGO":1,
+        "PRIMER_PICK_RIGHT_PRIMER":1,
+        "PRIMER_LIBERAL_BASE":1,
+        "PRIMER_LIB_AMBIGUITY_CODES_CONSENSUS":0,
+        "PRIMER_LOWERCASE_MASKING":0,
+        "PRIMER_PICK_ANYWAY":0,
+        "PRIMER_EXPLAIN_FLAG":1,
+        "PRIMER_MASK_TEMPLATE":0,
+        "PRIMER_TASK":"generic",
+        "PRIMER_MASK_FAILURE_RATE":0.1,
+        "PRIMER_MASK_5P_DIRECTION":1,
+        "PRIMER_MASK_3P_DIRECTION":0,
+        "PRIMER_MIN_QUALITY":0,
+        "PRIMER_MIN_END_QUALITY":0,
+        "PRIMER_QUALITY_RANGE_MIN":0,
+        "PRIMER_QUALITY_RANGE_MAX":100,
+        "PRIMER_MIN_SIZE":18,
+        "PRIMER_OPT_SIZE":20,
+        "PRIMER_MAX_SIZE":23,
+        "PRIMER_MIN_TM":57.0,
+        "PRIMER_OPT_TM":60,
+        "PRIMER_MAX_TM":62.0,
+        "PRIMER_PAIR_MAX_DIFF_TM":5.0,
+        "PRIMER_TM_FORMULA":1,
+        "PRIMER_PRODUCT_MIN_TM":-1000000.0,
+        "PRIMER_PRODUCT_OPT_TM":0.0,
+        "PRIMER_PRODUCT_MAX_TM":1000000.0,
+        "PRIMER_MIN_GC":30.0,
+        "PRIMER_OPT_GC_PERCENT":50.0,
+        "PRIMER_MAX_GC":70.0,
+        "PRIMER_NUM_RETURN":10,
+        "PRIMER_MAX_END_STABILITY":9.0,
+        "PRIMER_MAX_LIBRARY_MISPRIMING":12.00,
+        "PRIMER_PAIR_MAX_LIBRARY_MISPRIMING":20.00,
+        "PRIMER_MAX_SELF_ANY_TH":45.0,
+        "PRIMER_MAX_SELF_END_TH":35.0,
+        "PRIMER_PAIR_MAX_COMPL_ANY_TH":45.0,
+        "PRIMER_PAIR_MAX_COMPL_END_TH":35.0,
+        "PRIMER_MAX_HAIRPIN_TH":24.0,
+        "PRIMER_MAX_SELF_ANY":8.00,
+        "PRIMER_MAX_SELF_END":3.00,
+        "PRIMER_PAIR_MAX_COMPL_ANY":8.00,
+        "PRIMER_PAIR_MAX_COMPL_END":3.00,
+        "PRIMER_MAX_TEMPLATE_MISPRIMING_TH":40.00,
+        "PRIMER_PAIR_MAX_TEMPLATE_MISPRIMING_TH":70.00,
+        "PRIMER_MAX_TEMPLATE_MISPRIMING":12.00,
+        "PRIMER_PAIR_MAX_TEMPLATE_MISPRIMING":24.00,
+        "PRIMER_MAX_NS_ACCEPTED":0,
+        "PRIMER_MAX_POLY_X":4,
+        "PRIMER_INSIDE_PENALTY":-1.0,
+        "PRIMER_OUTSIDE_PENALTY":0,
+        "PRIMER_GC_CLAMP":0,
+        "PRIMER_MAX_END_GC":5,
+        "PRIMER_MIN_LEFT_THREE_PRIME_DISTANCE":3,
+        "PRIMER_MIN_RIGHT_THREE_PRIME_DISTANCE":3,
+        "PRIMER_MIN_5_PRIME_OVERLAP_OF_JUNCTION":7,
+        "PRIMER_MIN_3_PRIME_OVERLAP_OF_JUNCTION":4,
+        "PRIMER_SALT_MONOVALENT":50.0,
+        "PRIMER_SALT_CORRECTIONS":1,
+        "PRIMER_SALT_DIVALENT":1.5,
+        "PRIMER_DNTP_CONC":0.6,
+        "PRIMER_DNA_CONC":50.0,
+        "PRIMER_SEQUENCING_SPACING":500,
+        "PRIMER_SEQUENCING_INTERVAL":250,
+        "PRIMER_SEQUENCING_LEAD":50,
+        "PRIMER_SEQUENCING_ACCURACY":20,
+        "PRIMER_WT_SIZE_LT":1.0,
+        "PRIMER_WT_SIZE_GT":1.0,
+        "PRIMER_WT_TM_LT":1.0,
+        "PRIMER_WT_TM_GT":1.0,
+        "PRIMER_WT_GC_PERCENT_LT":0.0,
+        "PRIMER_WT_GC_PERCENT_GT":0.0,
+        "PRIMER_WT_SELF_ANY_TH":0.0,
+        "PRIMER_WT_SELF_END_TH":0.0,
+        "PRIMER_WT_HAIRPIN_TH":0.0,
+        "PRIMER_WT_TEMPLATE_MISPRIMING_TH":0.0,
+        "PRIMER_WT_SELF_ANY":0.0,
+        "PRIMER_WT_SELF_END":0.0,
+        "PRIMER_WT_TEMPLATE_MISPRIMING":0.0,
+        "PRIMER_WT_NUM_NS":0.0,
+        "PRIMER_WT_LIBRARY_MISPRIMING":0.0,
+        "PRIMER_WT_SEQ_QUAL":0.0,
+        "PRIMER_WT_END_QUAL":0.0,
+        "PRIMER_WT_POS_PENALTY":0.0,
+        "PRIMER_WT_END_STABILITY":0.0,
+        "PRIMER_WT_MASK_FAILURE_RATE":0.0,
+        "PRIMER_PAIR_WT_PRODUCT_SIZE_LT":0.0,
+        "PRIMER_PAIR_WT_PRODUCT_SIZE_GT":0.0,
+        "PRIMER_PAIR_WT_PRODUCT_TM_LT":0.0,
+        "PRIMER_PAIR_WT_PRODUCT_TM_GT":0.0,
+        "PRIMER_PAIR_WT_COMPL_ANY_TH":0.0,
+        "PRIMER_PAIR_WT_COMPL_END_TH":0.0,
+        "PRIMER_PAIR_WT_TEMPLATE_MISPRIMING_TH":0.0,
+        "PRIMER_PAIR_WT_COMPL_ANY":0.0,
+        "PRIMER_PAIR_WT_COMPL_END":0.0,
+        "PRIMER_PAIR_WT_TEMPLATE_MISPRIMING":0.0,
+        "PRIMER_PAIR_WT_DIFF_TM":0.0,
+        "PRIMER_PAIR_WT_LIBRARY_MISPRIMING":0.0,
+        "PRIMER_PAIR_WT_PR_PENALTY":1.0,
+        "PRIMER_PAIR_WT_IO_PENALTY":0.0,
+        "PRIMER_INTERNAL_MIN_SIZE":18,
+        "PRIMER_INTERNAL_OPT_SIZE":20,
+        "PRIMER_INTERNAL_MAX_SIZE":27,
+        "PRIMER_INTERNAL_MIN_TM":63.0,
+        "PRIMER_INTERNAL_OPT_TM":66.0,
+        "PRIMER_INTERNAL_MAX_TM":69.0,
+        "PRIMER_INTERNAL_MIN_GC":20.0,
+        "PRIMER_INTERNAL_OPT_GC_PERCENT":50.0,
+        "PRIMER_INTERNAL_MAX_GC":80.0,
+        "PRIMER_INTERNAL_MAX_SELF_ANY_TH":47.00,
+        "PRIMER_INTERNAL_MAX_SELF_END_TH":47.00,
+        "PRIMER_INTERNAL_MAX_HAIRPIN_TH":47.00,
+        "PRIMER_INTERNAL_MAX_SELF_ANY":12.00,
+        "PRIMER_INTERNAL_MAX_SELF_END":12.00,
+        "PRIMER_INTERNAL_MIN_QUALITY":0,
+        "PRIMER_INTERNAL_MAX_NS_ACCEPTED":0,
+        "PRIMER_INTERNAL_MAX_POLY_X":5,
+        "PRIMER_INTERNAL_MAX_LIBRARY_MISHYB":12.00,
+        "PRIMER_INTERNAL_SALT_MONOVALENT":50.0,
+        "PRIMER_INTERNAL_DNA_CONC":50.0,
+        "PRIMER_INTERNAL_SALT_DIVALENT":1.5,
+        "PRIMER_INTERNAL_DNTP_CONC":0.0,
+        "PRIMER_INTERNAL_WT_SIZE_LT":1.0,
+        "PRIMER_INTERNAL_WT_SIZE_GT":1.0,
+        "PRIMER_INTERNAL_WT_TM_LT":1.0,
+        "PRIMER_INTERNAL_WT_TM_GT":1.0,
+        "PRIMER_INTERNAL_WT_GC_PERCENT_LT":0.0,
+        "PRIMER_INTERNAL_WT_GC_PERCENT_GT":0.0,
+        "PRIMER_INTERNAL_WT_SELF_ANY_TH":0.0,
+        "PRIMER_INTERNAL_WT_SELF_END_TH":0.0,
+        "PRIMER_INTERNAL_WT_HAIRPIN_TH":0.0,
+        "PRIMER_INTERNAL_WT_SELF_ANY":0.0,
+        "PRIMER_INTERNAL_WT_SELF_END":0.0,
+        "PRIMER_INTERNAL_WT_NUM_NS":0.0,
+        "PRIMER_INTERNAL_WT_LIBRARY_MISHYB":0.0,
+        "PRIMER_INTERNAL_WT_SEQ_QUAL":0.0,
+        "PRIMER_INTERNAL_WT_END_QUAL":0.0,
+        
+        # 'PRIMER_NUM_RETURN': NUM_PRIMERS_PER_CDS,
+        # 'PRIMER_LIB_AMBIGUITY_CODES_CONSENSUS':0,
+        # ## Primer length
+        # 'PRIMER_OPT_SIZE': 20,
+        # 'PRIMER_MIN_SIZE': 18,
+        # 'PRIMER_MAX_SIZE': 25, # 22
+        # ## Primer Temp
+        # 'PRIMER_OPT_TM': 61.0, # 60
+        # 'PRIMER_MIN_TM': 58.0,
+        # 'PRIMER_MAX_TM': 63.0, # 61
+        # ## Primer GC
+        # 'PRIMER_MIN_GC': 40.0,
+        # 'PRIMER_MAX_GC': 65.0,
+        # 'PRIMER_MAX_POLY_X': 100,
+        # 'PRIMER_SALT_MONOVALENT': 50.0,
+        # 'PRIMER_DNA_CONC': 50.0,
+        # 'PRIMER_MAX_NS_ACCEPTED': 0,
+        # 'PRIMER_MAX_SELF_ANY': 12,
+        # 'PRIMER_MAX_SELF_END': 8,
+        # 'PRIMER_PAIR_MAX_COMPL_ANY': 12,
+        # 'PRIMER_PAIR_MAX_COMPL_END': 8,
+        # 'PRIMER_PICK_INTERNAL_OLIGO':1,
+        # 'PRIMER_INTERNAL_OPT_TM':68,
+        # 'PRIMER_INTERNAL_MIN_TM':66,
+        # 'PRIMER_INTERNAL_MAX_TM': 80, #69
     }
     seqcollect = []
     rec = []
@@ -46,10 +190,10 @@ def get_primers(record):
         primers =  p3.design_primers({
             'SEQUENCE_ID': f"{record.id}",
             'SEQUENCE_TEMPLATE': record.seq,
-            'PRIMER_PRODUCT_SIZE_RANGE': [[90,110]]}, 
+            'PRIMER_PRODUCT_SIZE_RANGE': [[90,120]]}, 
                                      p3_global_parameters)
     except:
-        print(f"{record.description} too short")
+        print(f"{record.description} errored out")
         ok = False
         return seqcollect
     for i in range(1, NUM_PRIMERS_PER_CDS + 1):
@@ -476,9 +620,9 @@ def main():
     primer_counter = 0
     cumtime  = 0
     for record in SeqIO.parse(cdsfile,"fasta"):
-        
+        print(record.description)
         if is_valid(record.description):
-            # print(record.description)
+            print("is valid")
             start = time.time()
             isvalid = False
             seq = get_primers(record)
@@ -495,22 +639,33 @@ def main():
         if _time > 0:
             print(f".....{round(cumtime,2)}s :: Found {len(collect)} primers")
         if cumtime > 15.*60.:
+            print("too long")
             break
     df = pd.DataFrame(collect)
-    #genome = cdsfile.split("/")[-1].split(".")[0]
-    df = df.assign(genome = genome)
-    if not os.path.exists(outdir):
-        os.makedirs(outdir)
-    print(df.shape)
-    df = df.sort_values(by="amplicon_size")
-    df = df[df.internal_tm >= ((df.forward_tm + df.reverse_tm)/2. + 6.)]
-    df.to_csv(f"{outdir}/{genome}.csv",index=False)
-    with open(f"{outdir}/{genome}_R1.fasta","w") as outfile:
-        for i, row in df.iterrows():
-            outfile.write(f">{row.genome}:{row.gene}:{row.primer_id}:f\n{row.forward_primer}\n")
-    with open(f"{outdir}/{genome}_R2.fasta","w") as outfile:
-        for i, row in df.iterrows():
-            outfile.write(f">{row.genome}:{row.gene}:{row.primer_id}:r\n{row.reverse_primer}\n")
+    if df.shape[0] == 0:        
+        print("No primers were generated using either CDS or full genome. Exiting!")
+        sys.exit()
+        
+        # with open(f"{outdir}/{genome}.csv", "w") as outfile:
+        #     outfile.write("")
+        # with open(f"{outdir}/{genome}_R1.fasta","w") as outfile:
+        #     outfile.write("")
+        # with open(f"{outdir}/{genome}_R2.fasta","w") as outfile:
+        #     outfile.write("")
+    else:
+        df = df.assign(genome = genome)
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
+        print("shape", df.shape)
+        df = df.sort_values(by="amplicon_size")
+        #df = df[df.internal_tm >= ((df.forward_tm + df.reverse_tm)/2. + 6.)]
+        df.to_csv(f"{outdir}/{genome}.csv",index=False)
+        with open(f"{outdir}/{genome}_R1.fasta","w") as outfile:
+            for i, row in df.iterrows():
+                outfile.write(f">{row.genome}:{row.gene}:{row.primer_id}:f\n{row.forward_primer}\n")
+        with open(f"{outdir}/{genome}_R2.fasta","w") as outfile:
+            for i, row in df.iterrows():
+                outfile.write(f">{row.genome}:{row.gene}:{row.primer_id}:r\n{row.reverse_primer}\n")
 
 if __name__ == '__main__':
     main()

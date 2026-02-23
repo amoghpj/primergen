@@ -7,6 +7,10 @@ run_path = Path(config["run_path"])
 
 #### inputs
 genome_dir = Path("genome/")
+runname = config.get("run_name","idt-design")
+output_idt_design_primers = runname + "_primer.xlsx"
+output_idt_design_probes = runname + "_probe.xlsx"
+
 ### OPTIONAL
 if config.get("strain_type", None) is not None:
     straintypedf = pd.read_csv(Path(config["strain_type"]))
@@ -18,13 +22,13 @@ annotation_dir = Path("cds/")
 concat_dir = Path("concatenated/")
 proposed_dir = Path("proposed/")
 
-self_aligned_dir = Path("aligned_long/")
-nonself_aligned_dir = Path("nonselfaligned_long/")
-validate_nonself_primers_dir = Path("validate_nonself_long/")
+self_aligned_dir = Path("aligned/")
+nonself_aligned_dir = Path("nonselfaligned/")
+validate_nonself_primers_dir = Path("validate_nonself/")
 self_index_dir = Path("genomeidx/")
 nonself_index_dir = Path("concatenatedidx/")
 target_dir = Path("target/")
-output_dir = Path("design_long")
+output_dir = Path("design")
 
 TARGETFILES = [f.split(".")[-2].split("/")[-1] for f in glob.glob(str(run_path / genome_dir) + "/*.fasta")]
 EXCLUDEDGENOME = [ run_path / concat_dir / Path(f"{f}_excluded.fasta") for f in TARGETFILES]
@@ -35,7 +39,9 @@ ALLGENOMES.extend(list(glob.glob(str(concat_dir) + "/*.fasta")))
 
 rule all:
     input:
-        run_path / "top10_per_genome_long.csv"
+        run_path / output_idt_design_primers,
+        run_path / output_idt_design_probes,
+#        run_path / "top10_per_genome.csv"
 
 rule aggregate:
     resources:
@@ -57,7 +63,7 @@ rule aggregate:
                 noprimers.append(f)
         df = pd.concat(dflist).reset_index(drop=True)
         df.to_csv(run_path / "top10_per_genome.csv", index=False)
-        with open("no_primers_found","w") as outfile:
+        with open(run_path / "no_primers_found","w") as outfile:
             outfile.write("\n".join(noprimers))
 
 rule find_cds_prokaryote:
@@ -114,7 +120,7 @@ cp {input.genome} {params.rundir}
 cd {params.rundir}
 perl /n/groups/springer/amogh/src/genemarks/gmes_linux_64_4/gmes_petap.pl --sequence {params.inputgenome} --ES
 cd ../../../
-python src/convert-gff-to-fna.py '{input.genome}' '{params.rundir}/genemark.gtf' '{output.cds}'
+python src/convert_gff_to_fna.py '{input.genome}' '{params.rundir}/genemark.gtf' '{output.cds}'
 """
 
 rule find_cds_virus:
@@ -262,7 +268,7 @@ rule align_nonself:
         indexref= lambda w : str(run_path / nonself_index_dir) + "/" +  w.genome + "_excluded",
         outputdir = run_path / nonself_aligned_dir
     log:
-       run_path / "logs/{genome}_nonselfalign_long.log"
+       run_path / "logs/{genome}_nonselfalign.log"
     shell:
        """mkdir -p {params.outputdir}/
 bowtie2 -x {params.indexref} -f -1 {input.R1} -2 {input.R2}  -I 0 -X 5000 -S {output} &> {log}
@@ -286,3 +292,29 @@ rule filter_candidates:
     shell:
         """mkdir -p {params.output}/
 python src/filter_primers.py {input.proposed} {input.aligntocheck} {output} 1> {log}"""
+
+
+rule create_idt_order:
+    """
+    Create excel files that can be uploaded to IDT
+    """
+    resources:
+        runtime="10m",
+        mem_mb="4000",
+        partition="short",
+    input:
+        run_path / "top10_per_genome.csv"    
+    conda:
+        "/n/groups/springer/amogh/conda/primer3/"
+    output:
+        primer=run_path / output_idt_design_primers,
+        probe=run_path / output_idt_design_probes
+    params:
+        prefixdetails=config["strain_type"],
+        runname = config["run_path"]
+    log:
+        os.path.join(run_path, "logs", "idt_design.log")
+    shell:
+       """
+python src/prepare_for_idt.py {input} {params.runname} {params.prefixdetails} >> {log}
+"""
